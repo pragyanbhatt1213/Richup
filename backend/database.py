@@ -8,9 +8,12 @@ class Database:
     db = None
 
     def connect(self):
-        self.client = AsyncIOMotorClient(MONGO_URL)
-        self.db = self.client.richup
-        print("Connected to MongoDB")
+        try:
+            self.client = AsyncIOMotorClient(MONGO_URL)
+            self.db = self.client.richup
+            print("Connected to MongoDB")
+        except Exception as e:
+            print(f"MongoDB connection error: {e}")
 
     def close(self):
         if self.client:

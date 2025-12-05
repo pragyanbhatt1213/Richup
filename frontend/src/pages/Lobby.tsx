@@ -16,58 +16,119 @@ const Lobby: React.FC = () => {
     const navigate = useNavigate();
     const [rooms, setRooms] = useState<Room[]>([]);
     const [playerName, setPlayerName] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    // Mock fetching rooms (replace with API call)
+    // Fetch rooms every 2 seconds
     useEffect(() => {
-        fetch('/api/lobby/list')
-            .then(res => res.json())
-            .then(data => setRooms(data))
-            .catch(err => console.error("Failed to fetch rooms", err));
+        const fetchRooms = async () => {
+            try {
+                const res = await fetch('http://localhost:8000/api/lobby/list');
+                if (res.ok) {
+                    const data = await res.json();
+                    setRooms(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch rooms", err);
+            }
+        };
+
+        fetchRooms();
+        const interval = setInterval(fetchRooms, 2000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleCreateRoom = async () => {
-        if (!playerName) return alert("Enter name first!");
+        if (!playerName.trim()) return alert("Enter name first!");
+        setLoading(true);
 
-        // 1. Register Player
-        const authRes = await fetch('/api/auth/join', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: playerName })
-        });
-        const authData = await authRes.json();
-        const playerId = authData.player.id;
-        localStorage.setItem('player_id', playerId);
-        localStorage.setItem('player_name', playerName);
-
-        // 2. Create Room
-        const roomRes = await fetch('/api/lobby/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ host_id: playerId })
-        });
-        const roomData = await roomRes.json();
-
-        navigate(`/game/${roomData.room_id}`);
-    };
-
-    const handleJoinRoom = async (roomId: string) => {
-        if (!playerName) return alert("Enter name first!");
-
-        // 1. Register Player (if not already)
-        let playerId = localStorage.getItem('player_id');
-        if (!playerId) {
-            const authRes = await fetch('/api/auth/join', {
+        try {
+            // 1. Register Player
+            const authRes = await fetch('http://localhost:8000/api/auth/join', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: playerName })
             });
+            
+            if (!authRes.ok) {
+                throw new Error('Failed to register player');
+            }
+            
             const authData = await authRes.json();
-            playerId = authData.player.id;
-            localStorage.setItem('player_id', playerId!);
-            localStorage.setItem('player_name', playerName);
-        }
+            const playerId = authData.player.id;
+            const playerName_ = authData.player.name;
+            
+            localStorage.setItem('player_id', playerId);
+            localStorage.setItem('player_name', playerName_);
 
-        navigate(`/game/${roomId}`);
+            // 2. Create Room
+            const roomRes = await fetch('http://localhost:8000/api/lobby/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ host_id: playerId })
+            });
+            
+            if (!roomRes.ok) {
+                throw new Error('Failed to create room');
+            }
+            
+            const roomData = await roomRes.json();
+            navigate(`/game/${roomData.room_id}`);
+        } catch (err) {
+            console.error("Error creating room:", err);
+            alert("Failed to create room. Check console for details.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleJoinRoom = async (roomId: string) => {
+        if (!playerName.trim()) return alert("Enter name first!");
+        setLoading(true);
+
+        try {
+            // 1. Register Player (if not already)
+            let playerId = localStorage.getItem('player_id');
+            let playerName_ = localStorage.getItem('player_name');
+            
+            if (!playerId) {
+                const authRes = await fetch('http://localhost:8000/api/auth/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: playerName })
+                });
+                
+                if (!authRes.ok) {
+                    throw new Error('Failed to register player');
+                }
+                
+                const authData = await authRes.json();
+                playerId = authData.player.id;
+                playerName_ = authData.player.name;
+                localStorage.setItem('player_id', playerId);
+                localStorage.setItem('player_name', playerName_);
+            }
+
+            // 2. Join Room
+            const joinRes = await fetch('http://localhost:8000/api/lobby/join', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    player_id: playerId,
+                    player_name: playerName_ 
+                })
+            });
+            
+            if (!joinRes.ok) {
+                throw new Error('Failed to join room');
+            }
+
+            navigate(`/game/${roomId}`);
+        } catch (err) {
+            console.error("Error joining room:", err);
+            alert("Failed to join room. Check console for details.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -84,15 +145,18 @@ const Lobby: React.FC = () => {
                             className="bg-black/30 border border-neon-cyan/50 rounded-lg px-4 py-2 text-neon-cyan focus:outline-none focus:border-neon-cyan transition-colors"
                             value={playerName}
                             onChange={(e) => setPlayerName(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleCreateRoom()}
+                            disabled={loading}
                         />
                         <StarBorder
                             as="button"
-                            className="bg-neon-cyan text-base-charcoal font-bold rounded-lg hover:bg-white transition-colors shadow-[0_0_15px_rgba(0,255,255,0.4)]"
+                            className="bg-neon-cyan text-base-charcoal font-bold rounded-lg hover:bg-white transition-colors shadow-[0_0_15px_rgba(0,255,255,0.4)] disabled:opacity-50"
                             color="#00FFFF"
                             speed="3s"
                             onClick={handleCreateRoom}
+                            disabled={loading}
                         >
-                            <span className="px-6 py-2">CREATE ROOM</span>
+                            <span className="px-6 py-2">{loading ? 'LOADING...' : 'CREATE ROOM'}</span>
                         </StarBorder>
                     </div>
                 </header>
@@ -113,8 +177,10 @@ const Lobby: React.FC = () => {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.9 }}
-                                    className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:border-neon-orange/50 transition-colors group cursor-pointer relative overflow-hidden"
-                                    onClick={() => handleJoinRoom(room.room_id)}
+                                    className={`bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 transition-colors group cursor-pointer relative overflow-hidden ${
+                                        room.game_started || room.players >= room.max_players ? 'opacity-50 cursor-not-allowed' : 'hover:border-neon-orange/50'
+                                    }`}
+                                    onClick={() => !loading && !room.game_started && room.players < room.max_players && handleJoinRoom(room.room_id)}
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-br from-neon-orange/0 to-neon-orange/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 

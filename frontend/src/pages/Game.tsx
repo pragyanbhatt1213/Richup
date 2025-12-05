@@ -32,15 +32,19 @@ const Game: React.FC = () => {
     const animationFrameRef = useRef<number>();
 
     const playerId = localStorage.getItem('player_id');
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = window.location.hostname;
+    const wsPort = window.location.port ? `:${8000}` : '';
     const { isConnected, lastMessage, sendMessage } = useWebSocket(
-        roomId ? `ws://${window.location.host}/ws/game/${roomId}/${playerId}` : null
+        roomId && playerId ? `${wsProtocol}//${wsHost}${wsPort}/ws/game/${roomId}/${playerId}` : null
     );
 
     // Fetch Board Config
     useEffect(() => {
-        fetch('/api/game/config')
+        fetch('http://localhost:8000/api/game/config')
             .then(res => res.json())
-            .then(data => setBoardConfig(data));
+            .then(data => setBoardConfig(data))
+            .catch(err => console.error("Failed to fetch board config", err));
     }, []);
 
     // Handle WS Messages
