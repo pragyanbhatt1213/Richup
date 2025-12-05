@@ -1,0 +1,60 @@
+.star-border-container {
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+    background: transparent;
+}
+
+.border-gradient-bottom,
+.border-gradient-top {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    width: 200%;
+    /* Double width for smooth movement */
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.border-gradient-top {
+    top: 0;
+    animation: star-move-top linear infinite;
+    transform: translateX(-50%);
+}
+
+.border-gradient-bottom {
+    bottom: 0;
+    animation: star-move-bottom linear infinite;
+    transform: translateX(0%);
+}
+
+.inner-content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes star-move-top {
+    0% {
+        transform: translateX(-50%);
+    }
+
+    100% {
+        transform: translateX(0%);
+    }
+}
+
+@keyframes star-move-bottom {
+    0% {
+        transform: translateX(0%);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}

@@ -1,0 +1,53 @@
+.scene {
+    width: 60px;
+    height: 60px;
+    perspective: 400px;
+}
+
+.cube {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 1s ease-out;
+}
+
+.cube__face {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border: 2px solid #00FFFF;
+    /* Neon Cyan */
+    background: rgba(0, 0, 0, 0.8);
+    color: #FF6B00;
+    /* Neon Orange */
+    font-size: 30px;
+    font-weight: bold;
+    line-height: 60px;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.cube__face--1 {
+    transform: rotateY(0deg) translateZ(30px);
+}
+
+.cube__face--2 {
+    transform: rotateY(90deg) translateZ(30px);
+}
+
+.cube__face--3 {
+    transform: rotateY(180deg) translateZ(30px);
+}
+
+.cube__face--4 {
+    transform: rotateY(-90deg) translateZ(30px);
+}
+
+.cube__face--5 {
+    transform: rotateX(90deg) translateZ(30px);
+}
+
+.cube__face--6 {
+    transform: rotateX(-90deg) translateZ(30px);
+}
